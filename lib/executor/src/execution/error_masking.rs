@@ -1,11 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
+use crate::response::graphql_error::{GraphQLError, GraphQLErrorExtensions};
 use hive_router_config::error_masking::{
     ErrorMaskingConfig, ExtensionsMaskingConfig, SubgraphErrorMaskingConfig,
 };
-use sonic_rs::{JsonValueMutTrait, Value};
-
-use crate::response::graphql_error::{GraphQLError, GraphQLErrorExtensions};
 
 pub struct ErrorMaskingRuntime {
     default_redacted_error_message: String,
@@ -31,6 +29,9 @@ impl ErrorMaskingRuntime {
         }
     }
 
+    // TODO
+    // fn effective_redact_error_message(&self, service_name: &str) -> bool {}
+
     pub fn compile_from_config(config: &ErrorMaskingConfig) -> Self {
         Self {
             default_redacted_error_message: config.redacted_error_message.clone(),
@@ -50,16 +51,10 @@ impl ErrorMaskingRuntime {
 
     fn compile_config(config: &SubgraphErrorMaskingConfig) -> ErrorMaskingCompiledConfig {
         let extensions_plan = config.extensions.as_ref().map(|cfg| match cfg {
-            ExtensionsMaskingConfig::AllowList(ref list) => RedactExtensionsPlan::Allow(
-                list.iter()
-                    .map(|s| RedactExtensionsPath::from_str(s))
-                    .collect(),
-            ),
-            ExtensionsMaskingConfig::DenyList(ref list) => RedactExtensionsPlan::Deny(
-                list.iter()
-                    .map(|s| RedactExtensionsPath::from_str(s))
-                    .collect(),
-            ),
+            ExtensionsMaskingConfig::AllowList { keys } => {
+                RedactExtensionsPlan::Allow(keys.clone())
+            }
+            ExtensionsMaskingConfig::DenyList { keys } => RedactExtensionsPlan::Deny(keys.clone()),
         });
 
         ErrorMaskingCompiledConfig {
@@ -75,81 +70,79 @@ struct ErrorMaskingCompiledConfig {
 }
 
 enum RedactExtensionsPlan {
-    Allow(Vec<RedactExtensionsPath>),
-    Deny(Vec<RedactExtensionsPath>),
+    Allow(Vec<String>),
+    Deny(Vec<String>),
 }
 
 impl RedactExtensionsPlan {
     pub fn apply(&self, extensions: &mut GraphQLErrorExtensions) {
         match self {
-            RedactExtensionsPlan::Allow(_list) => {}
+            RedactExtensionsPlan::Allow(list) => {
+                Self::apply_allow_list(extensions, list);
+            }
             RedactExtensionsPlan::Deny(list) => {
-                for removal_path in list {
-                    Self::remove_field(extensions, &removal_path.0);
-                }
+                Self::apply_deny_list(extensions, list);
             }
         }
     }
 
-    fn remove_field(extensions: &mut GraphQLErrorExtensions, rest: &Vec<String>) {
-        let Some(first) = rest.first() else {
-            return;
-        };
-
-        // Known top-level struct fields only match as a whole (no nesting into a String).
-        if rest.is_empty() {
-            match first.as_str() {
-                "code" => {
-                    extensions.code = None;
-                    return;
-                }
-                "service" => {
-                    extensions.service_name = None;
-                    return;
-                }
-                "affected_path" => {
-                    extensions.affected_path = None;
-                    return;
-                }
-                _ => {}
-            }
-        }
-
-        if rest.is_empty() {
-            extensions.extensions.remove(first);
-        } else if let Some(value) = extensions.extensions.get_mut(first) {
-            // "foo.bar.baz" -> walk into extensions["foo"] and remove "baz" from its parent
-            Self::remove_nested(value, rest);
+    fn apply_deny_list(extensions: &mut GraphQLErrorExtensions, list: &[String]) {
+        for removal_path in list {
+            Self::remove_field(extensions, &removal_path);
         }
     }
 
-    fn remove_nested(value: &mut Value, segments: &Vec<String>) {
-        if segments.is_empty() {
-            return;
-        }
+    fn apply_allow_list(extensions: &mut GraphQLErrorExtensions, list: &[String]) {
+        let mut allow_code = false;
+        let mut allow_service_name = false;
+        let mut allow_affected_path = false;
+        let mut allowed_keys = HashSet::new();
 
-        let mut current = value;
-        for seg in &segments[..segments.len() - 1] {
-            let next = match current.as_object_mut() {
-                Some(obj) => obj.get_mut(seg),
-                None => None,
-            };
-            match next {
-                Some(v) => current = v,
-                None => return, // path doesn't exist — nothing to remove
+        for key in list {
+            match key.as_str() {
+                "code" => allow_code = true,
+                "serviceName" => allow_service_name = true,
+                "affectedPath" => allow_affected_path = true,
+                other => {
+                    allowed_keys.insert(other);
+                }
             }
         }
 
-        if let Some(obj) = current.as_object_mut() {
-            obj.remove(&segments[segments.len() - 1]);
+        if !allow_code {
+            extensions.code = None;
         }
+
+        if !allow_service_name {
+            extensions.service_name = None;
+        }
+
+        if !allow_affected_path {
+            extensions.affected_path = None;
+        }
+
+        extensions
+            .extensions
+            .retain(|key, _| allowed_keys.contains(key.as_str()));
     }
-}
 
-struct RedactExtensionsPath(pub Vec<String>);
-
-impl RedactExtensionsPath {
-    fn from_str(s: &str) -> Self {
-        Self(s.trim().split('.').map(|s| s.to_string()).collect())
+    fn remove_field(extensions: &mut GraphQLErrorExtensions, key: &str) {
+        match key {
+            "code" => {
+                extensions.code = None;
+                return;
+            }
+            "serviceName" => {
+                extensions.service_name = None;
+                return;
+            }
+            "affectedPath" => {
+                extensions.affected_path = None;
+                return;
+            }
+            _ => {
+                extensions.extensions.remove(key);
+            }
+        }
     }
 }

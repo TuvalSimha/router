@@ -46,7 +46,7 @@ impl Default for SubgraphErrorMaskingConfig {
 #[serde(deny_unknown_fields, tag = "mode")]
 pub enum ExtensionsMaskingConfig {
     #[serde(rename = "allow")]
-    AllowList(Vec<String>),
+    AllowList { keys: Vec<String> },
     #[serde(rename = "deny")]
-    DenyList(Vec<String>),
+    DenyList { keys: Vec<String> },
 }

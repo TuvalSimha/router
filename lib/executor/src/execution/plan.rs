@@ -640,6 +640,10 @@ async fn execute_query_plan_with_data<'exec>(
         }
     }
 
+    for error in &mut errors {
+        opts.error_masking_runtime.apply(error);
+    }
+
     let body = project_by_operation(
         &data,
         errors,

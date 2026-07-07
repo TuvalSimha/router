@@ -1011,7 +1011,7 @@ Configuration for error masking.
 
 |Name|Type|Description|Required|
 |----|----|-----------|--------|
-|[**all**](#error_maskingall)|`object`|Default: `{"error_message":true,"extensions":null}`<br/>|yes|
+|[**all**](#error_maskingall)|`object`|Default: `{"error_message":true,"extensions":null}`<br/>||
 |**redacted\_error\_message**|`string`|Default: `"Unexpected error"`<br/>||
 |[**subgraphs**](#error_maskingsubgraphs)|`object`, `null`|||
 
@@ -1033,8 +1033,8 @@ redacted_error_message: Unexpected error
 
 |Name|Type|Description|Required|
 |----|----|-----------|--------|
-|**error\_message**|`boolean`||yes|
-|**extensions**|||no|
+|**error\_message**|`boolean`, `null`|||
+|**extensions**||||
 
 **Example**
 
@@ -1051,7 +1051,7 @@ extensions: null
 
 |Name|Type|Description|Required|
 |----|----|-----------|--------|
-|[**Additional Properties**](#error_maskingsubgraphsadditionalproperties)|`object`||yes|
+|[**Additional Properties**](#error_maskingsubgraphsadditionalproperties)|`object`|||
 
 <a name="error_maskingsubgraphsadditionalproperties"></a>
 #### error\_masking\.subgraphs\.additionalProperties: object
@@ -1060,8 +1060,16 @@ extensions: null
 
 |Name|Type|Description|Required|
 |----|----|-----------|--------|
-|**error\_message**|`boolean`||yes|
-|**extensions**|||no|
+|**error\_message**|`boolean`, `null`|||
+|**extensions**||||
+
+**Example**
+
+```yaml
+error_message: null
+extensions: null
+
+```
 
 <a name="headers"></a>
 ## headers: object

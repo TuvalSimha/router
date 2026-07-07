@@ -637,6 +637,8 @@ impl SubgraphExecutor for HTTPSubgraphExecutor {
             Ok(subscription_buffer::buffered(
                 mapped,
                 buffer_capacity,
+                self.telemetry_context.clone(),
+                SubscriptionTransport::HttpMultipart,
                 self.subgraph_name.clone(),
                 self.endpoint.to_string(),
             ))
@@ -684,6 +686,8 @@ impl SubgraphExecutor for HTTPSubgraphExecutor {
             Ok(subscription_buffer::buffered(
                 mapped,
                 buffer_capacity,
+                self.telemetry_context.clone(),
+                SubscriptionTransport::HttpSse,
                 self.subgraph_name.clone(),
                 self.endpoint.to_string(),
             ))

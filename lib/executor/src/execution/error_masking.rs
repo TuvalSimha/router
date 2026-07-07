@@ -29,9 +29,6 @@ impl ErrorMaskingRuntime {
         }
     }
 
-    // TODO
-    // fn effective_redact_error_message(&self, service_name: &str) -> bool {}
-
     pub fn compile_from_config(config: &ErrorMaskingConfig) -> Self {
         Self {
             default_redacted_error_message: config.redacted_error_message.clone(),
@@ -58,7 +55,7 @@ impl ErrorMaskingRuntime {
         });
 
         ErrorMaskingCompiledConfig {
-            redact_error_message: config.error_message,
+            redact_error_message: config.error_message.unwrap_or(true),
             extensions_plan,
         }
     }

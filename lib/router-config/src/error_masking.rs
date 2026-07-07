@@ -29,14 +29,20 @@ impl Default for ErrorMaskingConfig {
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
 pub struct SubgraphErrorMaskingConfig {
-    pub error_message: bool,
+    #[serde(default = "default_redact_error_message")]
+    pub error_message: Option<bool>,
+    #[serde(default)]
     pub extensions: Option<ExtensionsMaskingConfig>,
+}
+
+fn default_redact_error_message() -> Option<bool> {
+    None
 }
 
 impl Default for SubgraphErrorMaskingConfig {
     fn default() -> Self {
         Self {
-            error_message: true,
+            error_message: Some(true),
             extensions: None,
         }
     }

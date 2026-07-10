@@ -106,6 +106,16 @@ static LABORATORY_HTML: &str = include_str!("../static/graphiql.html");
 /// maintains the `SchemaState` instances (see [`SchemaState::from_supergraph_sdl`]); the router
 /// only reads whichever one is stored on the request.
 pub trait SchemaStateOverrideExt {
+    /// Overrides the schema used for this request. Set this to swap the entire GraphQL schema
+    /// (and everything derived from it: validation, introspection, planning, execution) for a
+    /// different one, on a per-request basis, e.g. to serve a different set of fields depending
+    /// on the caller.
+    ///
+    /// ### Example
+    ///
+    /// ```ignore
+    /// payload.set_schema_state(my_schema_state.clone());
+    /// ```
     fn set_schema_state(&self, state: Arc<SchemaState>);
 }
 

@@ -5,7 +5,7 @@ hive-router: patch
 
 # Replace the schema state in the on_http_request plugin hook
 
-Add `OnHttpRequestHookPayload::set_schema_state`, letting a plugin override the schema used for a request as early as `on_http_request`, and have it hold for the entire pipeline: parsing, validation, normalization, planning, execution, and introspection.
+Add `SchemaStateOverrideExt`, an extension trait for `OnHttpRequestHookPayload` providing `set_schema_state`, letting a plugin override the schema used for a request as early as `on_http_request`, and have it hold for the entire pipeline: parsing, validation, normalization, planning, execution, and introspection.
 
 Previously, a plugin could only swap the schema at the validation stage (`on_graphql_validation` via `payload.with_schema(...)`), which left introspection (`__schema`/`__type`) unaffected, since it reads from the schema resolved earlier in the pipeline. Fields hidden from validation would still show up in introspection.
 
@@ -14,6 +14,8 @@ Plugins build and own their `Arc<SchemaState>` instances (e.g. via `SchemaState:
 Example:
 
 ```rust
+use hive_router::SchemaStateOverrideExt;
+
 fn on_http_request<'req>(
     &'req self,
     payload: OnHttpRequestHookPayload<'req>,

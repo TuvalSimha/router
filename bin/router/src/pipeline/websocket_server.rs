@@ -53,7 +53,7 @@ pub async fn ws_index(
     shared_state: web::types::State<Arc<RouterSharedState>>,
 ) -> Result<HttpResponse, Error> {
     // A plugin may have overridden the schema state for this request in `on_http_request`
-    // (see `OnHttpRequestHookPayload::set_schema_state`); otherwise fall back to the router's own.
+    // (see `SchemaStateOverrideExt::set_schema_state`); otherwise fall back to the router's own.
     let schema_state = req
         .extensions()
         .get::<Arc<SchemaState>>()

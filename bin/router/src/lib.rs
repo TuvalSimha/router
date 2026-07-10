@@ -77,6 +77,7 @@ use hive_router_internal::{
 pub use hive_router_plan_executor::execution::plan::PlanExecutionOutput;
 pub use hive_router_plan_executor::executors::http::SubgraphHttpResponse;
 use hive_router_plan_executor::headers::response::ResponseHeaderSink;
+use hive_router_plan_executor::hooks::on_http_request::OnHttpRequestHookPayload;
 pub use hive_router_plan_executor::response::graphql_error::GraphQLError;
 pub use hive_router_query_planner as query_planner;
 pub use http;
@@ -99,6 +100,20 @@ pub mod tls;
 static LABORATORY_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/laboratory.html"));
 #[cfg(feature = "graphiql")]
 static LABORATORY_HTML: &str = include_str!("../static/graphiql.html");
+
+/// Lets a plugin override the [`SchemaState`] used for the entire request pipeline (parse,
+/// validate, normalize, plan, execute) starting from `on_http_request`. The plugin owns and
+/// maintains the `SchemaState` instances (see [`SchemaState::from_supergraph_sdl`]); the router
+/// only reads whichever one is stored on the request.
+pub trait SchemaStateOverrideExt {
+    fn set_schema_state(&self, state: Arc<SchemaState>);
+}
+
+impl<'req> SchemaStateOverrideExt for OnHttpRequestHookPayload<'req> {
+    fn set_schema_state(&self, state: Arc<SchemaState>) {
+        self.router_http_request.extensions_mut().insert(state);
+    }
+}
 
 struct CallbackServer(std::sync::Mutex<Option<ntex::server::Server>>);
 
@@ -138,7 +153,7 @@ async fn graphql_endpoint_handler(
         .capture_request(&request);
 
     // A plugin may have overridden the schema state for this request in `on_http_request`
-    // (see `OnHttpRequestHookPayload::set_schema_state`); otherwise fall back to the router's own.
+    // (see `SchemaStateOverrideExt::set_schema_state`); otherwise fall back to the router's own.
     let schema_state = request
         .extensions()
         .get::<Arc<SchemaState>>()

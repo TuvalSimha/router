@@ -18,7 +18,8 @@ use hive_router::{
         plugin_trait::{RouterPlugin, StartHookPayload},
     },
     query_planner::utils::parsing::safe_parse_schema,
-    HiveRouterConfig, SchemaState, SupergraphManagerError, TelemetryContext,
+    HiveRouterConfig, SchemaState, SchemaStateOverrideExt, SupergraphManagerError,
+    TelemetryContext,
 };
 
 const SUPERGRAPH_SDL: &str = include_str!("../supergraph.graphql");

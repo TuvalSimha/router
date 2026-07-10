@@ -2,7 +2,6 @@ use ntex::{
     http::Response,
     web::{self, DefaultError, WebRequest},
 };
-use std::sync::Arc;
 
 use crate::{
     plugin_context::PluginContext,
@@ -70,27 +69,6 @@ pub struct OnHttpRequestHookPayload<'req> {
     /// ```
     pub context: &'req PluginContext,
     pub request_context: RequestContextApi,
-}
-
-impl<'req> OnHttpRequestHookPayload<'req> {
-    /// Overrides the schema used for this request. Set this to swap the entire GraphQL schema
-    /// (and everything derived from it: validation, introspection, planning, execution) for a
-    /// different one, on a per-request basis, e.g. to serve a different set of fields depending
-    /// on the caller.
-    ///
-    /// ### Important
-    ///
-    /// The generic type `T` must be exactly `hive_router::SchemaState`. If any other type is passed,
-    /// the router will silently fall back to the default schema state.
-    ///
-    /// ### Example
-    ///
-    /// ```ignore
-    /// payload.set_schema_state(my_schema_state.clone());
-    /// ```
-    pub fn set_schema_state<T: Send + Sync + 'static>(&self, state: Arc<T>) {
-        self.router_http_request.extensions_mut().insert(state);
-    }
 }
 
 impl<'req> StartHookPayload<OnHttpResponseHookPayload<'req>, Response>
